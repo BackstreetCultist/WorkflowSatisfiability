@@ -96,6 +96,7 @@ def solve(instance):
         values.remove(user)
         tasks = values
         print(user, tasks)
+
         for i in range(len(assignment)):
             # if a task in assignment is a list of the tasks permitted for user
             if (i+1) in tasks:
@@ -103,6 +104,16 @@ def solve(instance):
             else: 
                 # user not allowed to perform task
                 model.Add(assignment[i] != user)
+
+    #Separation of Duty
+    separations = filter(lambda x: x.constraintType == ConstraintType.Separation, instance.constraints)
+    for separation in separations:
+        print("Adding separation constraint")
+        print(separation.values)
+        x = separation.values[0]
+        y = separation.values[1]
+
+        model.Add(assignment[(x-1)] != assignment[(y-1)])
 
     #Solve --------------------------------------------------------------------
     print("Solving instance")
