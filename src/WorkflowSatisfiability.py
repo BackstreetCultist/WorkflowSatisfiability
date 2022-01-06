@@ -76,7 +76,7 @@ def solve(instance):
     print("Building model")
     model = cp_model.CpModel()
     
-    #Define variables
+    #Define variables ---------------------------------------------------------
     assignment = []
     print("Tasks: ", instance.numberOfTasks)
     print("Users: ", instance.numberOfUsers)
@@ -85,9 +85,26 @@ def solve(instance):
         # So assignment[0] contains a variable named 1, representing task 1,
         # whose value is the assigned user
 
-    #Define constraints
+    #Define constraints -------------------------------------------------------
 
-    #Solve
+    #Authorisation constraints
+    authorisations = filter(lambda x: x.constraintType == ConstraintType.Authorisation, instance.constraints)
+    for auth in authorisations:
+        print("Adding authorisation constraint")
+        values = auth.values
+        user = values[0]
+        values.remove(user)
+        tasks = values
+        print(user, tasks)
+        for i in range(len(assignment)):
+            # if a task in assignment is a list of the tasks permitted for user
+            if (i+1) in tasks:
+                pass
+            else: 
+                # user not allowed to perform task
+                model.Add(assignment[i] != user)
+
+    #Solve --------------------------------------------------------------------
     print("Solving instance")
     starttime = int(time() * 1000)
     solver = cp_model.CpSolver()
