@@ -8,13 +8,19 @@ class ConstraintType(Enum):
     Authorisation = 0
     Separation = 1
     Binding = 2
+    AtMostK = 3
 
 class Constraint:
     def __init__(self, constraintType, values):
         self.constraintType = constraintType
         self.values = values
 
-#TODO create At-most-k and One-Team subclasses of Constraint
+class AtMostK(Constraint):
+    def __init__(self, constraintType, values, k):
+        self.k = k
+        super().__init__(constraintType, values)
+
+#TODO create One-Team subclass of Constraint
 
 class Instance:
     def __init__(self, numberOfTasks, numberOfUsers, numberOfConstraints, constraints):
@@ -65,9 +71,15 @@ def readFile(fileName):
             constraint = Constraint(ConstraintType.Binding, constraintValues)
             constraints.append(constraint)
 
+        elif constraintType == "at-most-k":
+            words.remove(constraintType)
+            k = words.pop(0)
+            constraintValues = list(map(int, map(lambda word: word[1:], words)))
+            print(constraintType, k, constraintValues)
+
         else:
             print("Error: Unrecognised Constraint")
-        #TODO at-most-k and one-team
+        #TODO one-team
 
     instance = Instance(numberOfTasks, numberOfUsers, numberOfConstraints, constraints)
     return instance
@@ -125,6 +137,7 @@ def solve(instance):
 
         model.Add(assignment[(x-1)] == assignment[(y-1)])
         
+    #At-Most-K
 
     #Solve --------------------------------------------------------------------f
     print("Solving instance")
@@ -140,7 +153,6 @@ def solve(instance):
         print("unsat")
 
 def printModel(instance, solver, assignment):
-    #TODO print
     for i in range(instance.numberOfTasks):
         print(f"Task {assignment[i].Name} assigned to User {solver.Value(assignment[i])}")
 
