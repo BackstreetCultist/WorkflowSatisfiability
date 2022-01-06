@@ -49,19 +49,19 @@ def readFile(fileName):
 
         if constraintType == "authorisations":
             words.remove(constraintType)
-            constraintValues = list(map(int, map(lambda word: word[1], words)))
+            constraintValues = list(map(int, map(lambda word: word[1:], words)))
             constraint = Constraint(ConstraintType.Authorisation, constraintValues)
             constraints.append(constraint)
 
         elif constraintType == "separation-of-duty":
             words.remove(constraintType)
-            constraintValues = list(map(int, map(lambda word: word[1], words)))
+            constraintValues = list(map(int, map(lambda word: word[1:], words)))
             constraint = Constraint(ConstraintType.Separation, constraintValues)
             constraints.append(constraint)
 
         elif constraintType == "binding-of-duty":
             words.remove(constraintType)
-            constraintValues = list(map(int, map(lambda word: word[1], words)))
+            constraintValues = list(map(int, map(lambda word: word[1:], words)))
             constraint = Constraint(ConstraintType.Binding, constraintValues)
             constraints.append(constraint)
 
@@ -115,7 +115,18 @@ def solve(instance):
 
         model.Add(assignment[(x-1)] != assignment[(y-1)])
 
-    #Solve --------------------------------------------------------------------
+    #Binding of Duty
+    bindings = filter(lambda x: x.constraintType == ConstraintType.Binding, instance.constraints)
+    for binding in bindings:
+        print("Adding binding constraint")
+        print(binding.values)
+        x = binding.values[0]
+        y = binding.values[1]
+
+        model.Add(assignment[(x-1)] == assignment[(y-1)])
+        
+
+    #Solve --------------------------------------------------------------------f
     print("Solving instance")
     starttime = int(time() * 1000)
     solver = cp_model.CpSolver()
