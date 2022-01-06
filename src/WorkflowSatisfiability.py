@@ -1,5 +1,5 @@
 import sys # Used for command-line arguments
-import os # Used for file paths
+import os  # Used for file paths
 from time import time
 from enum import Enum
 from ortools.sat.python import cp_model
@@ -17,9 +17,9 @@ class Constraint:
 #TODO create At-most-k and One-Team subclasses of Constraint
 
 class Instance:
-    def __init__(self, numberOfUsers, numberOfTasks, numberOfConstraints, constraints):
-        self.numberOfUsers = numberOfUsers
+    def __init__(self, numberOfTasks, numberOfUsers, numberOfConstraints, constraints):
         self.numberOfTasks = numberOfTasks
+        self.numberOfUsers = numberOfUsers
         self.numberOfConstraints = numberOfConstraints
         self.constraints = constraints #List of type Constraint (see above)
 
@@ -32,13 +32,13 @@ def readFile(fileName):
 
     file = open(filePath, 'r')
 
-    stepsWords = file.readline().strip().split()
-    numberOfSteps = int(stepsWords[len(stepsWords)-1])
+    tasksWords = file.readline().strip().lower().split()
+    numberOfTasks = int(tasksWords[len(tasksWords)-1])
 
-    usersWords = file.readline().strip().split()
+    usersWords = file.readline().strip().lower().split()
     numberOfUsers = int(usersWords[len(usersWords)-1])
 
-    constraintsWords = file.readline().strip().split()
+    constraintsWords = file.readline().strip().lower().split()
     numberOfConstraints = int(constraintsWords[len(constraintsWords)-1])
 
     constraints = []
@@ -69,7 +69,7 @@ def readFile(fileName):
             print("Error: Unrecognised Constraint")
         #TODO at-most-k and one-team
 
-    instance = Instance(numberOfSteps, numberOfUsers, numberOfConstraints, constraints)
+    instance = Instance(numberOfTasks, numberOfUsers, numberOfConstraints, constraints)
     return instance
 
 def solve(instance):
@@ -77,6 +77,13 @@ def solve(instance):
     model = cp_model.CpModel()
     
     #Define variables
+    assignment = []
+    print("Tasks: ", instance.numberOfTasks)
+    print("Users: ", instance.numberOfUsers)
+    for i in range(instance.numberOfTasks):
+        assignment.append(model.NewIntVar(1, instance.numberOfUsers, str((i+1))))
+        # So assignment[0] contains a variable named 1, representing task 1,
+        # whose value is the assigned user
 
     #Define constraints
 
@@ -89,13 +96,14 @@ def solve(instance):
     print(f"Instance solved in {endtime - starttime}ms")
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print("sat")
-        printModel(solver)
+        printModel(instance, solver, assignment)
     else:
         print("unsat")
 
-def printModel(solver):
+def printModel(instance, solver, assignment):
     #TODO print
-    print("TODO print")
+    for i in range(instance.numberOfTasks):
+        print(f"Task {assignment[i].Name} assigned to User {solver.Value(assignment[i])}")
 
 if __name__ == "__main__":
     if len(sys.argv) >= 2:
