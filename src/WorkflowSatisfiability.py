@@ -73,9 +73,10 @@ def readFile(fileName):
 
         elif constraintType == "at-most-k":
             words.remove(constraintType)
-            k = words.pop(0)
+            k = int(words.pop(0))
             constraintValues = list(map(int, map(lambda word: word[1:], words)))
-            print(constraintType, k, constraintValues)
+            constraint = AtMostK(ConstraintType.AtMostK, constraintValues, k)
+            constraints.append(constraint)
 
         else:
             print("Error: Unrecognised Constraint")
@@ -89,11 +90,9 @@ def solve(instance):
     model = cp_model.CpModel()
     
     #Define variables ---------------------------------------------------------
-    assignment = []
     print("Tasks: ", instance.numberOfTasks)
     print("Users: ", instance.numberOfUsers)
-    for i in range(instance.numberOfTasks):
-        assignment.append(model.NewIntVar(1, instance.numberOfUsers, str((i+1))))
+    assignment = [model.NewIntVar(1, instance.numberOfUsers, str(i+1)) for i in range(instance.numberOfTasks)]
         # So assignment[0] contains a variable named 1, representing task 1,
         # whose value is the assigned user
 
@@ -138,6 +137,32 @@ def solve(instance):
         model.Add(assignment[(x-1)] == assignment[(y-1)])
         
     #At-Most-K
+    atMostKs = list(filter(lambda x: x.constraintType == ConstraintType.AtMostK, instance.constraints))
+    for i in range(len(atMostKs)):
+        print("Adding at-most-k constraint")
+        print(atMostKs[i].k, atMostKs[i].values)
+
+        valuesSubset = [assignment[x-1] for x in atMostKs[i].values]
+
+        #This loop creates a list of boolean variables for each user
+        #The boolean flag is True if the user appears in the list
+        #And otherwise false
+        #This solution inspired by a post by OR-Tools dev Laurent Perron
+        #https://stackoverflow.com/questions/60447449/how-to-define-a-constraint-in-ortools-to-set-a-limit-of-distinct-values
+        #And implemented with regard to
+        #https://developers.google.com/optimization/cp/channeling
+        usersInSubset = []
+        for j in range(instance.numberOfUsers):
+            userInSubset = model.NewBoolVar(("atMostK"+str(i)+".user"+str(j+1)))
+            for value in valuesSubset:
+                var = model.NewBoolVar(("atMostK"+str(i)+".user"+str(j+1)+".forValue"+str(value)))
+                model.Add(value == (j+1)).OnlyEnforceIf(var)
+                model.Add(value != (j+1)).OnlyEnforceIf(var.Not())
+                model.Add(userInSubset == True).OnlyEnforceIf(var)
+            usersInSubset.append(userInSubset)
+
+        #In python, True==1 and False==0, so you can sum bools like so
+        model.Add(sum(usersInSubset) <= atMostKs[i].k)
 
     #Solve --------------------------------------------------------------------f
     print("Solving instance")
