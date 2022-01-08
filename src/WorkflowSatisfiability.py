@@ -202,9 +202,40 @@ def solve(instance):
 
     #One Team
     oneTeams = list(filter(lambda x: x.constraintType == ConstraintType.OneTeam, instance.constraints))
-    for oneTeam in oneTeams:
+    for i in range(len(oneTeams)):
         print("Adding one-team constraint")
-        print(oneTeam.values, oneTeam.teams)
+        print(oneTeams[i].values, oneTeams[i].teams)
+
+        #Create a bool for each team, saying whether or not all tasks are assigned to that team
+        allInTeam = [model.NewBoolVar("OneTeam"+str(i)+".Team"+str(j)) for j in range(len(oneTeams[i].teams))]
+
+        #Add constraints that that bool is true if that is the case
+        for j in range(len(oneTeams[i].teams)):
+            #Create a set of bools for whether each individual task is assigned to the team
+            tasksAssignedToTeam = []
+            for k in range(len(oneTeams[i].values)):
+                #This bool is true if the task is assigned to an individual user from the team
+                taskAssignedToTeam = model.NewBoolVar("OneTeam"+str(i)+".Team"+str(j)+".Value"+str(k))
+                #Due to channeling, we must create a bool for whether it is assigned to each user
+                taskAssignedToTeamUsers = []
+                for l in range(len(oneTeams[i].teams[j])):
+                    taskAssignedToTeamUser = model.NewBoolVar("OneTeam"+str(i)+".Team"+str(j)+".Value"+str(k)+".User"+str(l))
+                    model.Add(assignment[oneTeams[i].values[k]-1] == oneTeams[i].teams[j][l]).OnlyEnforceIf(taskAssignedToTeamUser)
+                    model.Add(assignment[oneTeams[i].values[k]-1] != oneTeams[i].teams[j][l]).OnlyEnforceIf(taskAssignedToTeamUser.Not())
+                    taskAssignedToTeamUsers.append(taskAssignedToTeamUser)
+                
+                #Check whether at least one user in the team has the task assigned to them
+                model.Add(sum(taskAssignedToTeamUsers) >= 1).OnlyEnforceIf(taskAssignedToTeam)
+                model.Add(sum(taskAssignedToTeamUsers) < 1).OnlyEnforceIf(taskAssignedToTeam.Not())
+                #If so, we can say that that task is assigned to the team
+                tasksAssignedToTeam.append(taskAssignedToTeam)
+            
+            #If all in set are true then all tasks are assigned to the team, so we can say allInTeam[j] is true
+            model.Add(sum(tasksAssignedToTeam) == len(tasksAssignedToTeam)).OnlyEnforceIf(allInTeam[j])
+            model.Add(sum(tasksAssignedToTeam) != len(tasksAssignedToTeam)).OnlyEnforceIf(allInTeam[j].Not())
+        
+        #Add constraint that at least one in allInTeam must be True
+        model.AddBoolOr(allInTeam)
 
     #Solve --------------------------------------------------------------------f
     print("Solving instance")
