@@ -247,12 +247,39 @@ def solve(instance):
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print("sat")
         printModel(instance, solver, assignment)
+        checkForAlternateSolutions(instance, model, solver, assignment)
     else:
         print("unsat")
 
 def printModel(instance, solver, assignment):
     for i in range(instance.numberOfTasks):
         print(f"Task {assignment[i].Name} assigned to User {solver.Value(assignment[i])}")
+
+def checkForAlternateSolutions(instance, model, originalSolver, assignment):
+    assignmentsIdentical = []
+    #Create a bool for whether each assignment in assignment[] is identical to previous
+    for i in range(instance.numberOfTasks):
+        assignmentIdentical = model.NewBoolVar("Identical"+str(i+1))
+        model.Add(assignment[i] == originalSolver.Value(assignment[i])).OnlyEnforceIf(assignmentIdentical)
+        model.Add(assignment[i] != originalSolver.Value(assignment[i])).OnlyEnforceIf(assignmentIdentical.Not())
+        assignmentsIdentical.append(assignmentIdentical)
+
+    #Constrain the model that at least one is different
+    model.Add(sum(assignmentsIdentical) < instance.numberOfTasks)
+
+    #Check model again for different solution
+    print("Solving instance for new solution")
+    starttime = int(time() * 1000)
+    newSolver = cp_model.CpSolver()
+    status = newSolver.Solve(model)
+    endtime = int(time() * 1000)
+    print(f"Solved for new solution in {endtime - starttime}ms")
+    if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
+        print("other solutions exist")
+        # Uncomment to see alternate solution
+        # printModel(instance, newSolver, assignment)
+    else:
+        print("this is the only solution")
 
 if __name__ == "__main__":
     if len(sys.argv) >= 2:
