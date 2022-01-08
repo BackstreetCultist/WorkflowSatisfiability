@@ -9,6 +9,7 @@ class ConstraintType(Enum):
     Separation = 1
     Binding = 2
     AtMostK = 3
+    OneTeam = 4
 
 class Constraint:
     def __init__(self, constraintType, values):
@@ -20,7 +21,10 @@ class AtMostK(Constraint):
         self.k = k
         super().__init__(constraintType, values)
 
-#TODO create One-Team subclass of Constraint
+class OneTeam(Constraint):
+    def __init__(self, constraintType, values, teams):
+        self.teams = teams
+        super().__init__(constraintType, values)
 
 class Instance:
     def __init__(self, numberOfTasks, numberOfUsers, numberOfConstraints, constraints):
@@ -76,6 +80,38 @@ def readFile(fileName):
             k = int(words.pop(0))
             constraintValues = list(map(int, map(lambda word: word[1:], words)))
             constraint = AtMostK(ConstraintType.AtMostK, constraintValues, k)
+            constraints.append(constraint)
+
+        elif constraintType == "one-team":
+            words.remove(constraintType)
+
+            #Set tasks to values
+            constraintValues = []
+            for word in words:
+                if 'u' not in word:
+                    constraintValues.append(int(word[1:]))
+            for value in constraintValues:
+                words.remove(("s"+str(value)))
+
+            #Create sub-lists for teams
+            teams = []
+            for i in range(str(words).count(')')):
+                team = []
+                for word in words:
+                    if word[len(word)-1] == ')':
+                        if word[0] == '(':
+                            team.append(int(word[2:len(word)-1]))
+                        else:
+                            team.append(int(word[1:len(word)-1]))
+                        break
+                    else:
+                        if word[0] == '(':
+                            team.append(int(word[2:]))
+                        else:
+                            team.append(int(word[1:]))
+                words = words[len(team):]
+                teams.append(team)
+            constraint = OneTeam(ConstraintType.OneTeam, constraintValues, teams)
             constraints.append(constraint)
 
         else:
@@ -163,6 +199,12 @@ def solve(instance):
 
         #In python, True==1 and False==0, so you can sum bools like so
         model.Add(sum(usersInSubset) <= atMostKs[i].k)
+
+    #One Team
+    oneTeams = list(filter(lambda x: x.constraintType == ConstraintType.OneTeam, instance.constraints))
+    for oneTeam in oneTeams:
+        print("Adding one-team constraint")
+        print(oneTeam.values, oneTeam.teams)
 
     #Solve --------------------------------------------------------------------f
     print("Solving instance")
