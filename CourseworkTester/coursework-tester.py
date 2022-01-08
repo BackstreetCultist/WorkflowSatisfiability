@@ -69,8 +69,7 @@ def get_error(instance, is_sat, solution):
 
 def run(instance_path, solver_path):
     from subprocess import check_output
-    print("Running: ", instance_path, solver_path)
-    output = check_output(['python', solver_path, instance_path], shell=True).decode("utf-8")
+    output = check_output(['python', solver_path, instance_path], shell=False).decode("utf-8")
     return output
 
 
@@ -155,9 +154,6 @@ solver_file = sys.argv[1]
 if len(sys.argv) > 2:
     test_dir(sys.argv[2], solver_file)
 else:
-    print("Looking for files")
     from os import listdir
-    print(listdir('.'))
     for folder in listdir('.'):
-        print("Testing: ", folder)
         test_dir(folder, solver_file)
