@@ -176,7 +176,7 @@
 			
 			The operation of the solver on this constraint is mathematically very similar to the formula given above,
 			as since True Booleans in a set can be "counted" in Python,
-			we are able to effectively "mock" the \(uniqueusers()\) function and arrive at the same value.
+			we are able to effectively "mock" the \(uniqueUsers()\) function and arrive at the same value.
 			However, the large amount of variables created by this method is likely one cause of the system's poor performance (see Evaluation section).
 
 		\subsection{One-Team}
@@ -189,10 +189,10 @@
 			\(\pi(s_1) = u_3\) and \(\pi(s_2) = u_4\) is a valid assignment, but \(\pi(s_1) = u_1\) and \(\pi(s_2) = u_3\) is not.
 
 			\begin{multline}
-				\exists x' \in X . x' = true \\ where \ \forall x \in X, \forall T \in Ts, x = AllInTeam(S', T) \qquad S' \subseteq S, (\forall T \in Ts) \subseteq U
+				\exists x' \in X . x' = true \\ where \ \forall x \in X, \forall T \in Ts, x = AllInTeam(S', T) \qquad S' \subseteq S, (\forall T \in Ts) \subseteq U, |Ts| = |X|
 			\end{multline}
 
-			Simply, we create a Boolean variable \(x\) for each team, whose value is set by some predicate \(Allinteam()\),
+			Simply, we create a Boolean variable \(x\) for each team, whose value is set by some predicate \(AllInTeam()\),
 			which returns true if all of a given set of steps are assigned to members of a given set of users.
 			If at least one such \(x\) is true, then we can say that the specified steps have been assigned to one of the specified teams.
 
@@ -232,11 +232,33 @@
 
 	\section{Implementation}
 
+		As has been discussed elsewhere, the solver is implemented in Python using OR-Tools.
+		OR-Tools requires Python3 specifically, so this must be installed.
+		OR-Tools can then be installed via pip, and the program can be run normally,
+		taking as a command-line argument a target file to solve.
+
+		The source code appears twice in the repository,
+		once under the src/ directory and once in CourseworkTester/.
+		When run from src/, it will locate the specified problem instance in the instances/ directory -
+		this functionality is removed in the other directory for compatability with the provided testing script.
+		For more details, view the included README.md file.
+
+		As explained in the above Section, the solver completes all the requirements listed, including the one to test whether a solution is unique.
+		It fulfils this by re-running the solver, with an additional constraint that at least one assignment is different to the ones originally provided.
+		Thus, if this proves \(unsat\), a second solution does not exist.
+
+		There are no known bugs in the solver, and when run with the provided testing script no tests fail.
+		However, its performance is far from perfect.
+		The solver struggles to solve difficult instances, in some cases failing to terminate after half-an-hour or longer.
+		The likely reasons for this will be discussed in the following Section.
+
 	\section{Evaluation}
 
-	\section{Conclusions}
+	\section{Conclusions \& Future Work}
 
 		% Talk about FPT
+
+		% Talk about multithreading
 
 	\section{References}
 	\bibliography{bibliography}
