@@ -1,6 +1,8 @@
 \documentclass[11pt]{article}
 \usepackage{geometry}
 \usepackage{cite}
+\usepackage{amsfonts}
+\usepackage{amsmath}
 \geometry{a4paper, margin=2.5cm}
 
 \title{Knowledge Representation and Reasoning Formal Excercise Six Report}
@@ -87,104 +89,157 @@
 
 	\section{Formulation}
 
+		The specification of WSP in this case called for five constraints to be implemented.
+		Here, we will discuss each of these constraints in turn, giving the mathematical
+		formulation used as well as some acknowledgement of how it was implemented in the
+		Python program.
+
+		The specification also called for the problem to be able to tell if the solution
+		it had found (in the case that it had judged the problem instance \(sat\)) was
+		unique or not. This will be discussed in the final part of this section.
+
+		At the heart of the solver are two sets of variables and an assignment:
+
+		\begin{itemize}
+			\item The set \(S = \{s_1, s_2... s_n\}\) of steps or tasks to be assigned.
+			\item The set \(U = \{u_1, u_2... u_n\}\) of users to whom steps can be assigned.
+			\item The assignment \(\pi : S \rightarrow U\) of steps to users, e.g. \(\pi(s_1) = u_1\) denotes that the step \(s_1\) is assigned to the user \(u_1\).\footnote{Note that in the program, this is represented by the array \(assignment[]\), e.g. \(assignment[0]=1\)} We can say that a problem instance is \(sat\) if there exists a valid assignment \(\pi(s)\) for all \(s \in S\).
+		\end{itemize}
+
+		With that defined, we can move on to discuss the formulation of each constraint.
+
+		\subsection{Authorisation}
+
+			An Authorisation constraint consists of a user \(u \in U\) and an authorisation list \(A \subseteq S\).
+			It states that \(u\) is only permitted to perform tasks in \(A\).
+			This is implemented in the solver according to the following mathematical formula:
+
+			\begin{equation}
+				\pi(s) \neq u \qquad \qquad \qquad \qquad u \in U, \forall s \notin A, A \subseteq S
+			\end{equation}
+
+			Quite simply, we add a constraint for every step \(s\) that is \textbf{not} in the authorisation list \(A\)
+			stating that the user \(u\) cannot be assigned that step.
+
+		\subsection{Binding of Duty}
+
+			An instance of the Binding of Duty constraint supplies two steps \(s_1\) and \(s_2\),
+			and states that they must be carried out by the same user.
+			This is formulated simply, like so:
+
+			\begin{equation}
+				\pi(s_1) = \pi(s_2) \qquad \qquad \qquad \qquad s_1, s_2 \in S
+			\end{equation}
+
+			In plain language, the assignments of \(s_1\) and \(s_2\) must be the same.
+
+		\subsection{Separation of Duty}
+
+			Separation of Duty is, essentially, the opposite to Binding of Duty:
+			given two steps \(s_1\) and \(s_2\),
+			their assignment must be different:
+
+			\begin{equation}
+				\pi(s_1) \neq \pi(s_2) \qquad \qquad \qquad \qquad s_1, s_2 \in S
+			\end{equation}
+
+			Again in plain language, the assignments of \(s_1\) and \(s_2\) must be different.
+
+		\subsection{At-Most-\(k\)}
+
+			At-Most-\(k\) is a constraint stating that for a set of steps \(T \subseteq S\),
+			the maximum amount of users assigned must be no more than \(k\),
+			in other words, the size of the "team" working on \(T\) can be no bigger than \(k\).
+			This can be expressed using set cardinatlity:
+
+			\begin{multline}
+				uniqueUsers(T) <= k\\
+				where \ uniqueUsers(T) = |removeDuplicates(X)|\\
+				where \ X = \pi(t)\forall t \in T \qquad k \in \mathbb{N}, T \subseteq S
+			\end{multline}
+			
+			In other words, \(uniqueUsers()\) returns the amount of unique users in \(U\) assigned to a subset of \(S\).
+			This proved somewhat more difficult to implement in OR-Tools,
+			due to the fact that most operations are not evaluated at "solve-time"
+			i.e. the moment that the solver is called. For example, the code snippet...
+
+			\begin{align*}
+				&len(set([1,2,3,1]))
+			\end{align*}
+
+			...which normally would return \(3\), will not work if called on CP-SAT variables.
+
+			As such, what is used in the program is a Boolean CP-SAT variable stating whether or not,
+			for each user, they are assigned to a task in the given subset.
+			Additionally to this, linking users to tasks in this way require "constraint channeling"\footnote{https://developers.google.com/optimization/cp/channeling},
+			forcing the creation of more arbitrary variables.
+			
+			The operation of the solver on this constraint is mathematically very similar to the formula given above,
+			as since True Booleans in a set can be "counted" in Python,
+			we are able to effectively "mock" the \(uniqueusers()\) function and arrive at the same value.
+			However, the large amount of variables created by this method is likely one cause of the system's poor performance (see Evaluation section).
+
+		\subsection{One-Team}
+
+			The One-Team constraint is the most complex of the constraints the solver implements.
+			Provided is a set of steps followed by an arbitrary number of sets of users,
+			known as "teams", with the constraint being that all the given steps must be carried out
+			by members of the same team. In other words, given the steps \(s_1\) and \(s_2\),
+			and the teams \(\{u_1, u_2\}\) and \(\{u_3, u_4\}\),
+			\(\pi(s_1) = u_3\) and \(\pi(s_2) = u_4\) is a valid assignment, but \(\pi(s_1) = u_1\) and \(\pi(s_2) = u_3\) is not.
+
+			\begin{multline}
+				\exists x' \in X . x' = true \\ where \ \forall x \in X, \forall T \in Ts, x = AllInTeam(S', T) \qquad S' \subseteq S, (\forall T \in Ts) \subseteq U
+			\end{multline}
+
+			Simply, we create a Boolean variable \(x\) for each team, whose value is set by some predicate \(Allinteam()\),
+			which returns true if all of a given set of steps are assigned to members of a given set of users.
+			If at least one such \(x\) is true, then we can say that the specified steps have been assigned to one of the specified teams.
+
+			However, this constraint once again proves much harder to implement using OR-Tools than to specify mathematically.
+			Once again, the issue can be found in the lack of possible operations in OR-Tools -
+			Python provides the powerful \(in\) keyword to test if an element is in a list,
+			so an easy solution might seem to run something like this:
+
+			\begin{align*}
+				&allInTeams = [] \\
+				&for \ team \ in \ teams:\\
+				&\qquad stepsInTeam = [(step \ in \ team) \ for \ step \ in \ steps]\\
+				&\qquad allInTeam = (stepsInTeam == len(steps))\\
+				&\qquad allInTeams.append(allInTeam)
+			\end{align*}
+
+			However, the \(in\) keyword cannot be used at solve-time with OR-Tools.
+			As such, the implementation of the \(Allinteam\) predicate and the building of the \(X\) set
+			once again required costly use of extra Boolean variables due to constraint channeling and
+			a requirement to check individual tasks against individual team members.
+
+		\subsection{Solution Uniqueness}
+
+			The final operation that requires mathematical expression is not strictly a constraint,
+			however it was an optional requirement of the solver.
+			Namely, that the solver was able to determine whether or not a solution was unique.
+			This determination is carried out by adding a new constraint to the solver:
+
+			\begin{equation}
+				\exists s. \pi(s) \neq \pi'(s) \qquad \qquad \qquad \qquad s \in S
+			\end{equation}
+
+			Where \(\pi\) represents the original set of assignments, and \(\pi'\) represents an arbitrary new set.
+			Thus, there must be at least one different assignment for \(\pi'\) to be valid and therefore
+			for a different solution to exist. If the output after adding this constraint is \(unsat\),
+			then we know that the original solution was unique.
+
 	\section{Implementation}
 
 	\section{Evaluation}
 
 	\section{Conclusions}
 
-	% Talk about FPT
+		% Talk about FPT
 
 	\section{References}
 	\bibliography{bibliography}
 	\bibliographystyle{plain}
 
-	\newpage
-
-	% Introduction
-
-	The Solver I have designed for the Exam Timetabling problem is implemented in four stages:
-	
-	\begin{itemize}
-		\item Variables
-		\item Helper Functions
-		\item Rules
-		\item Operations
-	\end{itemize}
-
-	In this report, I will briefly discuss each of these. The 'Operations' section will also include a short consideration of the solver's performance.\newline
-
-	\textbf{Variables}
-
-	The solver relies on four Z3 variables - \(exam1\) and \(exam2\) are used throughout to represent exams, while \(x\) and \(y\) represent other miscellaneous values such as room numbers. Please note that other variable names may be used in this report, as 'exam1' and 'exam2' in particular are chosen for code readability over common mathematical notation.
-
-	The other code logic included in the Variables section creates a 2D array \(examStudentVector\) in which a list of the students for an exam are stored at that exam's index. Restructuring the data in this way makes certain later tasks slightly more efficient.\newline
-
-	\textbf{Helper Functions}
-
-	This section defines a number of helper functions and predicates which are used to construct the solver's rules. These functions are largely self-explanatory - for example, \(ExamIsValid()\) is a predicate which returns \(true\) if a given number representing an exam is within the set of exams. \(getRoom()\) meanwhile is a function which returns an integer within the set of rooms representing the room assigned to an exam.\newline
-
-	\textbf{Rules}
-	
-	Here we will briefly discuss the implementations of each Rule called for by the problem descriptiion.\newline
-
-	\textit{Rule One}
-
-	The first rule states that `Each exam has to be timetabled in exactly one room and exactly one slot'. This has been formulated as follows (in the program it is written as one constraint but is split into three here for ease of presentation):
-
-	\begin{equation}
-		\forall e \in E, \exists r \in R . r = getRoom(e) \land \exists s \in s . s = getSlot(e)
-	\end{equation}
-
-	\begin{equation}
-		\forall e \in E, \lnot(\exists x,y . x \neq y, (x = getRoom(e) \land y = getRoom(e))
-	\end{equation}
-
-	\begin{equation}
-		\forall e \in E, \lnot(\exists x,y . x \neq y, (x = getSlot(e) \land y = getSlot(e))
-	\end{equation}
-
-	Equation 1 states that each exam has at least one room and slot that it takes place in, while Equations 2 and 3 state that there does not exist a pair of distinct integers which both represent either a room or slot attached to an exam - i.e. each exam has \textit{only} one room and slot that it takes place in.\newline
-
-	\textit{Rule Two}
-
-	The implementation of the second rule, `There can be at most one exam timetabled in a room within a specific slot', is somewhat simpler and can be expressed as follows:
-
-	\begin{equation}
-		\forall e_1,e_2 \in E . (e_1 \neq e_2 \land getRoom(e_1) == getRoom(e_2)) \Rightarrow (getSlot(e_1) \neq getSlot(e_2))
-	\end{equation}
-
-	\begin{equation}
-		\forall e_1,e_2 \in E . (e_1 \neq e_2 \land getSlot(e_1) == getSlot(e_2)) \Rightarrow (getRoom(e_1) \neq getRoom(e_2))
-	\end{equation}
-
-	In plain English, Equation 4 states that if two distinct exams share a room then they do not share a time slot. Conversely, Equation 5 states that if they share a time slot then they do not share a room.\newline
-
-	\textit{Rule Three}
-
-	Implication is also used to formulate the third rule, 'The number of students taking an exam cannot exceed the capacity of the room where the exam takes place', which also relies on the previously defined helper functions. It is formalised as follows:
-
-	\begin{equation}
-		\forall e \in E, \forall r \in R . (getRoom(e) == r) \Rightarrow (getRoomCapacity(r) >= getNumberOfStudents(e))
-	\end{equation}
-
-	Simply put, if a given exam takes place in a given room then the capacity of that room must be greater than or equal to the number of students taking the exam.\newline
-
-	\textit{Rule Four}
-
-	The final rule that is required to solve the problem states that 'A student cannot take exams in consecutive time slots'. Implication is used again here, this time to test properties of distinct exams in relation to each other:
-
-	\begin{equation}
-		\forall e_1, e_2 \in E . (getSlot(e_1) = getSlot(e_2) \pm 1) \Rightarrow \lnot (\exists s \in S . (StudentInExam(s, e_1) \land StudentInExam(s, e_2)))
-	\end{equation}
-
-	This states that for all pairs of exams in adjacent slots, there does not exist a student \(s\) who is sitting both exams.\newline
-	
-	\textbf{Operations}
-
-	The final section of the code, Operations, calls the \(check()\) method on the solver before printing the result and, if satisfiable, the timetable produced. This makes this section of the report a good place to discuss the performance of the solver.
-
-	Using the Linux \(time()\) function (adding together the reported \(user\) and \(sys\) times as generally suggested\footnote{See e.g. https://thomas-cokelaer.info/blog/2018/02/meaning-of-real-user-and-sys-time-statistics/}), the program consistently takes between 0.180s and 0.200s for the supplied satisfiable problems. The same is true for the included unsatisfiable problems, which since they are of similar size suggests that there is no significant difference in performance between satisfiable and unsatisfiable instances.
-
-	However, performance begins to degrade significantly with larger problems. Due to the way the program is implemented it is easy to construct test files with arbitrarily high numbers of exams, as exams with no students will still be programmed in without causing an error. A test file with 50 exams takes roughly 3 seconds, while one with 75 is in the region of 40 and raising the number to 80 causes it to run for over a minute. This suggests an exponential rise in runtime with relation to the number of exams \(e\). Exponential performance of the algorithm is however to be expected given that Exam Scheduling problems are known to be NP-Hard\footnote{Jha, Sujit. (2014). EXAM TIMETABLING PROBLEM USING GENETIC ALGORITHM. International Journal of Research in Engineering and Technology. 03. 649-654. 10.15623/ijret.2014.0305120.}.
 \end{document}
