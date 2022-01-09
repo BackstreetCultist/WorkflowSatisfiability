@@ -1,5 +1,6 @@
 \documentclass[11pt]{article}
 \usepackage{geometry}
+\usepackage{cite}
 \geometry{a4paper, margin=2.5cm}
 
 \title{Knowledge Representation and Reasoning Formal Excercise Six Report}
@@ -14,7 +15,8 @@
        		\textbf{Knowledge Representation and Reasoning}
 
        		\vspace{0.5cm}
-			   Formal Excercise Six Report
+
+			   Coursework - Workflow Satisfiability Problem
 
        		\vspace{1.5cm}
 
@@ -31,6 +33,73 @@
        		\today
 		\end{center}
 	\end{titlepage}
+
+	\begin{abstract}
+
+		I develop a CSP-Solver for the Workflow Satisfiability Problem in Python
+		using OR-Tools, an optimisation-problem library developed by Google. I
+		briefly introduce the problem and discuss related research before providing
+		a mathematical description of the Solver's operations. There then follows
+		discussion of the implementation of the Solver and its performance.
+
+	\end{abstract}
+
+	\newpage
+
+	\tableofcontents
+
+	\newpage
+
+	\section{Introduction}
+
+		The Workflow Satisfiability Problem (WSP) is defined by Crampton et. al\cite{crampton16} as
+		"the problem of determining whether there exists an assignment of
+		users to workflow steps that satisfies the policy", where the "policy"
+		is a set of access-control rules dictating which users can be assigned
+		to which steps. The WSP is notable for its ability to model real-world
+		scenarios involving workflow scheduling\cite{crampton16}. It is known to be NP-Hard\cite{crampton162}, and NP-Complete in the case that
+		certain constraints are included (including the Separation-of-Duty constraint
+		modelled here)\cite{wang10}.
+
+		OR-Tools is "an open source software suite for optimization"\footnote{Taken from Google's official page for the software here: https://developers.google.com/optimization}
+		implemented as a library in multiple programming languages including Python.
+		Crucially, the library offers a module known as the CP-SAT Solver intended for
+		use in Constraint Programming (CP). Given that the WSP is provably tractable to
+		CP\cite{benoist02}, the CP-SAT Solver is highly applicable in this case.
+
+		As such, this study focuses on the implementation of a solver for the WSP
+		in Python using the CP-SAT Solver provided by the OR-Tools suite. Python
+		was chosen due to existing knowledge of the library in this language,
+		as well as due to the specification of the problem in this case requiring
+		complex string manipulation to generate problem instances - Python is
+		known to be an effective and well-documented language for string
+		manipulation\footnote{See e.g. https://towardsdatascience.com/tips-for-string-manipulation-in-python-92b1fc3f4d9f}.
+
+		The study finds that a solver can be created using Python and CP-SAT that
+		is effective at handling all five of the constraints specified in this case (see Formulation section)
+		without any known flaws or errors, and is capable of determining whether
+		the initially-found solution (if there is one) is unique. However, the
+		system struggles with large problem instances, to the point of failing to
+		terminate after half-an-hour or more in some cases. The cause of this is
+		fairly well-understood (see Evaluation section), however it is a key limitation
+		which would surely need to be fixed as a matter of priority were work on
+		the system to continue.
+
+	\section{Formulation}
+
+	\section{Implementation}
+
+	\section{Evaluation}
+
+	\section{Conclusions}
+
+	% Talk about FPT
+
+	\section{References}
+	\bibliography{bibliography}
+	\bibliographystyle{plain}
+
+	\newpage
 
 	% Introduction
 

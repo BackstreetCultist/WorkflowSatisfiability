@@ -17,3 +17,6 @@ A version with slightly different file management can also be run
 under test from the CourseworkTester directory:
 
     python coursework-tester.py WorkflowSatisfiability.py
+
+## Report
+The report is included both in LaTeX source format and .pdf compiled format.
