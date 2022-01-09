@@ -1,0 +1,121 @@
+\documentclass[11pt]{article}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+
+\title{Knowledge Representation and Reasoning Formal Excercise Six Report}
+\author{Charlie Wilkins}
+\date{\today}
+
+\begin{document}
+	\begin{titlepage}
+		\begin{center}
+			\vspace*{1cm}
+
+       		\textbf{Knowledge Representation and Reasoning}
+
+       		\vspace{0.5cm}
+			   Formal Excercise Six Report
+
+       		\vspace{1.5cm}
+
+       		Charlie Wilkins
+			
+			\vspace{0.5cm}			
+			
+       		psychw@nottingham.ac.uk
+       		
+       		14322520
+       		
+       		\vspace{0.5cm}
+       		
+       		\today
+		\end{center}
+	\end{titlepage}
+
+	% Introduction
+
+	The Solver I have designed for the Exam Timetabling problem is implemented in four stages:
+	
+	\begin{itemize}
+		\item Variables
+		\item Helper Functions
+		\item Rules
+		\item Operations
+	\end{itemize}
+
+	In this report, I will briefly discuss each of these. The 'Operations' section will also include a short consideration of the solver's performance.\newline
+
+	\textbf{Variables}
+
+	The solver relies on four Z3 variables - \(exam1\) and \(exam2\) are used throughout to represent exams, while \(x\) and \(y\) represent other miscellaneous values such as room numbers. Please note that other variable names may be used in this report, as 'exam1' and 'exam2' in particular are chosen for code readability over common mathematical notation.
+
+	The other code logic included in the Variables section creates a 2D array \(examStudentVector\) in which a list of the students for an exam are stored at that exam's index. Restructuring the data in this way makes certain later tasks slightly more efficient.\newline
+
+	\textbf{Helper Functions}
+
+	This section defines a number of helper functions and predicates which are used to construct the solver's rules. These functions are largely self-explanatory - for example, \(ExamIsValid()\) is a predicate which returns \(true\) if a given number representing an exam is within the set of exams. \(getRoom()\) meanwhile is a function which returns an integer within the set of rooms representing the room assigned to an exam.\newline
+
+	\textbf{Rules}
+	
+	Here we will briefly discuss the implementations of each Rule called for by the problem descriptiion.\newline
+
+	\textit{Rule One}
+
+	The first rule states that `Each exam has to be timetabled in exactly one room and exactly one slot'. This has been formulated as follows (in the program it is written as one constraint but is split into three here for ease of presentation):
+
+	\begin{equation}
+		\forall e \in E, \exists r \in R . r = getRoom(e) \land \exists s \in s . s = getSlot(e)
+	\end{equation}
+
+	\begin{equation}
+		\forall e \in E, \lnot(\exists x,y . x \neq y, (x = getRoom(e) \land y = getRoom(e))
+	\end{equation}
+
+	\begin{equation}
+		\forall e \in E, \lnot(\exists x,y . x \neq y, (x = getSlot(e) \land y = getSlot(e))
+	\end{equation}
+
+	Equation 1 states that each exam has at least one room and slot that it takes place in, while Equations 2 and 3 state that there does not exist a pair of distinct integers which both represent either a room or slot attached to an exam - i.e. each exam has \textit{only} one room and slot that it takes place in.\newline
+
+	\textit{Rule Two}
+
+	The implementation of the second rule, `There can be at most one exam timetabled in a room within a specific slot', is somewhat simpler and can be expressed as follows:
+
+	\begin{equation}
+		\forall e_1,e_2 \in E . (e_1 \neq e_2 \land getRoom(e_1) == getRoom(e_2)) \Rightarrow (getSlot(e_1) \neq getSlot(e_2))
+	\end{equation}
+
+	\begin{equation}
+		\forall e_1,e_2 \in E . (e_1 \neq e_2 \land getSlot(e_1) == getSlot(e_2)) \Rightarrow (getRoom(e_1) \neq getRoom(e_2))
+	\end{equation}
+
+	In plain English, Equation 4 states that if two distinct exams share a room then they do not share a time slot. Conversely, Equation 5 states that if they share a time slot then they do not share a room.\newline
+
+	\textit{Rule Three}
+
+	Implication is also used to formulate the third rule, 'The number of students taking an exam cannot exceed the capacity of the room where the exam takes place', which also relies on the previously defined helper functions. It is formalised as follows:
+
+	\begin{equation}
+		\forall e \in E, \forall r \in R . (getRoom(e) == r) \Rightarrow (getRoomCapacity(r) >= getNumberOfStudents(e))
+	\end{equation}
+
+	Simply put, if a given exam takes place in a given room then the capacity of that room must be greater than or equal to the number of students taking the exam.\newline
+
+	\textit{Rule Four}
+
+	The final rule that is required to solve the problem states that 'A student cannot take exams in consecutive time slots'. Implication is used again here, this time to test properties of distinct exams in relation to each other:
+
+	\begin{equation}
+		\forall e_1, e_2 \in E . (getSlot(e_1) = getSlot(e_2) \pm 1) \Rightarrow \lnot (\exists s \in S . (StudentInExam(s, e_1) \land StudentInExam(s, e_2)))
+	\end{equation}
+
+	This states that for all pairs of exams in adjacent slots, there does not exist a student \(s\) who is sitting both exams.\newline
+	
+	\textbf{Operations}
+
+	The final section of the code, Operations, calls the \(check()\) method on the solver before printing the result and, if satisfiable, the timetable produced. This makes this section of the report a good place to discuss the performance of the solver.
+
+	Using the Linux \(time()\) function (adding together the reported \(user\) and \(sys\) times as generally suggested\footnote{See e.g. https://thomas-cokelaer.info/blog/2018/02/meaning-of-real-user-and-sys-time-statistics/}), the program consistently takes between 0.180s and 0.200s for the supplied satisfiable problems. The same is true for the included unsatisfiable problems, which since they are of similar size suggests that there is no significant difference in performance between satisfiable and unsatisfiable instances.
+
+	However, performance begins to degrade significantly with larger problems. Due to the way the program is implemented it is easy to construct test files with arbitrarily high numbers of exams, as exams with no students will still be programmed in without causing an error. A test file with 50 exams takes roughly 3 seconds, while one with 75 is in the region of 40 and raising the number to 80 causes it to run for over a minute. This suggests an exponential rise in runtime with relation to the number of exams \(e\). Exponential performance of the algorithm is however to be expected given that Exam Scheduling problems are known to be NP-Hard\footnote{Jha, Sujit. (2014). EXAM TIMETABLING PROBLEM USING GENETIC ALGORITHM. International Journal of Research in Engineering and Technology. 03. 649-654. 10.15623/ijret.2014.0305120.}.
+\end{document}

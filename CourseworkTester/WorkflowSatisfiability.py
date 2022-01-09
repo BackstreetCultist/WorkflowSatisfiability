@@ -253,7 +253,6 @@ def solve(instance):
 
 def printModel(instance, solver, assignment):
     for i in range(instance.numberOfTasks):
-        # print(f"Task {assignment[i].Name} assigned to User {solver.Value(assignment[i])}")
         print(f"s{i+1}: u{solver.Value(assignment[i])}")
 
 def checkForAlternateSolutions(instance, model, originalSolver, assignment):

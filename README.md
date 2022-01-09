@@ -5,15 +5,15 @@ It requires python3, and OR-Tools must be installed with the following command:
 
     pip3 install ortools
 
-Please include the file path to the chosen problem instance under the instances/
-directory as a command-line argument when running the program, for example (from
-src directory):
+When running the program from the src/ directory, it will read files from the
+instances/ directory. Running from here will demonstrate that the program is
+able to test if a solution is unique:
 
     python WorkflowSatisfiability.py example1.txt
 
     python WorkflowSatisfiability.py 3-constraint/0.txt
 
-A version with slightly different file management and output can also be run
+A version with slightly different file management can also be run
 under test from the CourseworkTester directory:
 
     python coursework-tester.py WorkflowSatisfiability.py
