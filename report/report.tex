@@ -55,18 +55,18 @@
 	\section{Introduction}
 
 		The Workflow Satisfiability Problem (WSP) is defined by Crampton et. al\cite{crampton16} as
-		"the problem of determining whether there exists an assignment of
-		users to workflow steps that satisfies the policy", where the "policy"
+		``the problem of determining whether there exists an assignment of
+		users to workflow steps that satisfies the policy'', where the ``policy''
 		is a set of access-control rules dictating which users can be assigned
 		to which steps. The WSP is notable for its ability to model real-world
 		scenarios involving workflow scheduling\cite{crampton16}. It is known to be NP-Hard\cite{crampton162}, and NP-Complete in the case that
 		certain constraints are included (including the Separation-of-Duty constraint
 		modelled here)\cite{wang10}.
 
-		OR-Tools is "an open source software suite for optimization"\footnote{Taken from Google's official page for the software here: https://developers.google.com/optimization}
-		implemented as a library in multiple programming languages including Python.
+		OR-Tools is ``an open source software suite for optimization''\footnote{Taken from Google's official page for the software here: https://developers.google.com/optimization},
+		developed by Google and implemented as a library in multiple programming languages including Python.
 		Crucially, the library offers a module known as the CP-SAT Solver intended for
-		use in Constraint Programming (CP). Given that the WSP is provably tractable to
+		use in Constraint Programming (CP). Given that the WSP has proven tractable to
 		CP\cite{benoist02}, the CP-SAT Solver is highly applicable in this case.
 
 		As such, this study focuses on the implementation of a solver for the WSP
@@ -115,7 +115,7 @@
 			This is implemented in the solver according to the following mathematical formula:
 
 			\begin{equation}
-				\pi(s) \neq u \qquad \qquad \qquad \qquad u \in U, \forall s \notin A, A \subseteq S
+				\pi(s) \neq u \qquad \qquad \qquad \qquad u \in U, \forall s \notin A, A \subseteq S, s \in S
 			\end{equation}
 
 			Quite simply, we add a constraint for every step \(s\) that is \textbf{not} in the authorisation list \(A\)
@@ -149,7 +149,7 @@
 
 			At-Most-\(k\) is a constraint stating that for a set of steps \(T \subseteq S\),
 			the maximum amount of users assigned must be no more than \(k\),
-			in other words, the size of the "team" working on \(T\) can be no bigger than \(k\).
+			in other words, the size of the ``team'' working on \(T\) can be no bigger than \(k\).
 			This can be expressed using set cardinatlity:
 
 			\begin{multline}
@@ -160,33 +160,34 @@
 			
 			In other words, \(uniqueUsers()\) returns the amount of unique users in \(U\) assigned to a subset of \(S\).
 			This proved somewhat more difficult to implement in OR-Tools,
-			due to the fact that most operations are not evaluated at "solve-time"
+			due to the fact that most operations are not evaluated at ``solve-time''
 			i.e. the moment that the solver is called. For example, the code snippet...
 
 			\begin{align*}
 				&len(set([1,2,3,1]))
 			\end{align*}
 
-			...which normally would return \(3\), will not work if called on CP-SAT variables.
+			...which normally would return \(3\), will not behave similarly if called on CP-SAT variables.
 
 			As such, what is used in the program is a Boolean CP-SAT variable stating whether or not,
 			for each user, they are assigned to a task in the given subset.
-			Additionally to this, linking users to tasks in this way require "constraint channeling"\footnote{https://developers.google.com/optimization/cp/channeling},
+			Additionally to this, linking users to tasks in this way require ``constraint channeling''\footnote{https://developers.google.com/optimization/cp/channeling},
 			forcing the creation of more arbitrary variables.
 			
 			The operation of the solver on this constraint is mathematically very similar to the formula given above,
-			as since True Booleans in a set can be "counted" in Python,
-			we are able to effectively "mock" the \(uniqueUsers()\) function and arrive at the same value.
+			as since \(true\) Booleans in a set can be ``counted'' in Python,
+			we are able to effectively ``mock'' the \(uniqueUsers()\) function and arrive at the same value.
 			However, the large amount of variables created by this method is likely one cause of the system's poor performance (see Evaluation section).
 
 		\subsection{One-Team}
 
 			The One-Team constraint is the most complex of the constraints the solver implements.
 			Provided is a set of steps followed by an arbitrary number of sets of users,
-			known as "teams", with the constraint being that all the given steps must be carried out
+			known as ``teams'', with the constraint being that all the given steps must be carried out
 			by members of the same team. In other words, given the steps \(s_1\) and \(s_2\),
 			and the teams \(\{u_1, u_2\}\) and \(\{u_3, u_4\}\),
 			\(\pi(s_1) = u_3\) and \(\pi(s_2) = u_4\) is a valid assignment, but \(\pi(s_1) = u_1\) and \(\pi(s_2) = u_3\) is not.
+			Mathematically, this constraint can be formulated as follows:
 
 			\begin{multline}
 				\exists x' \in X . x' = true \\ where \ \forall x \in X, \forall T \in Ts, x = AllInTeam(S', T) \qquad S' \subseteq S, (\forall T \in Ts) \subseteq U, |Ts| = |X|
@@ -210,7 +211,7 @@
 			\end{align*}
 
 			However, the \(in\) keyword cannot be used at solve-time with OR-Tools.
-			As such, the implementation of the \(Allinteam\) predicate and the building of the \(X\) set
+			As such, the implementation of the \(AllInTeam\) predicate and the building of the \(X\) set
 			once again required costly use of extra Boolean variables due to constraint channeling and
 			a requirement to check individual tasks against individual team members.
 
@@ -253,6 +254,37 @@
 		The likely reasons for this will be discussed in the following Section.
 
 	\section{Evaluation}
+
+		As stated above, testing suggests that the logic of the program is free from bugs and flaws.
+		As such, this section will focus primarily on the performance of the solver.
+		The below table demonstrates the performance of the solver on the 19 provided Example Instances,
+		and the results it produces:
+
+		\begin{table}[]
+			\begin{tabular}{|l|l|l|l|}
+			\hline
+			\textbf{Example} & \textbf{Time (s)}          & \textbf{Sat} & \textbf{Unique} \\ \hline
+			1                & \multicolumn{1}{r|}{0.007} & yes          & no              \\
+			2				 & \multicolumn{1}{r|}{0.008} & no           & N/A             \\
+			3				 & \multicolumn{1}{r|}{0.007} & yes          & yes             \\
+			4				 & \multicolumn{1}{r|}{0.008} & no           & N/A             \\
+			5				 & \multicolumn{1}{r|}{0.020} & yes          & yes             \\
+			6				 & \multicolumn{1}{r|}{0.018} & no           & N/A             \\
+			7				 & \multicolumn{1}{r|}{0.014} & yes          & yes             \\
+			8				 & \multicolumn{1}{r|}{0.012} & no           & N/A             \\
+			9				 & \multicolumn{1}{r|}{0.170} & yes          & no              \\
+			10				 & \multicolumn{1}{r|}{0.088} & yes          & no              \\
+			11				 & \multicolumn{1}{r|}{2.094} & yes          & no              \\
+			12				 & \multicolumn{1}{r|}{2.099} & yes          & no              \\
+			13				 & \multicolumn{1}{r|}{0.604} & no           & N/A             \\
+			14				 & \multicolumn{1}{r|}{0.023} & no           & N/A             \\
+			15				 & \multicolumn{1}{r|}{0.036} & no           & N/A             \\
+			16				 & \multicolumn{1}{r|}{>30m}  & N/A          & N/A             \\
+			17				 & \multicolumn{1}{r|}{>30m}  & N/A          & N/A             \\
+			18				 & \multicolumn{1}{r|}{>30m}  & N/A          & N/A             \\
+			19				 & \multicolumn{1}{r|}{>30m}  & N/A          & N/A             \\
+			\end{tabular}
+		\end{table}
 
 	\section{Conclusions \& Future Work}
 
