@@ -3,7 +3,7 @@
 The source code is implemented in Python using Google's OR-Tools solver suite.
 It requires python3, and OR-Tools must be installed with the following command:
 
-    pip3 install ortools
+    pip install ortools
 
 When running the program from the src/ directory, it will read files from the
 instances/ directory. Running from here will demonstrate that the program is
@@ -19,4 +19,5 @@ under test from the CourseworkTester directory:
     python coursework-tester.py WorkflowSatisfiability.py
 
 ## Report
-The report is included both in LaTeX source format and .pdf compiled format.
+The report is included both in LaTeX source format and .pdf compiled format,
+under the report/ directory.
