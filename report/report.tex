@@ -36,18 +36,6 @@
 		\end{center}
 	\end{titlepage}
 
-	\begin{abstract}
-
-		I develop a CSP-Solver for the Workflow Satisfiability Problem in Python
-		using OR-Tools, an optimisation-problem library developed by Google. I
-		briefly introduce the problem and discuss related research before providing
-		a mathematical description of the Solver's operations. There then follows
-		discussion of the implementation of the Solver and its performance.
-
-	\end{abstract}
-
-	\newpage
-
 	\tableofcontents
 
 	\newpage
@@ -137,7 +125,7 @@
 
 			Separation of Duty is, essentially, the opposite to Binding of Duty:
 			given two steps \(s_1\) and \(s_2\),
-			their assignment must be different:
+			they cannot be assigned to the same user:
 
 			\begin{equation}
 				\pi(s_1) \neq \pi(s_2) \qquad \qquad \qquad \qquad s_1, s_2 \in S
@@ -341,14 +329,15 @@
 			meaning that each one has more-or-less the same chance of finding a solution\footnote{See discussion by OR-Tools dev Laurent Perron here: https://groups.google.com/g/or-tools-discuss/c/i3TF\_Szuz\_k}.
 			This is a somewhat naive, non-deterministic approach to multi-threading, but would still likely provide some performance improvement.
 			However, given a brief, non-formal test, multi-threading the solver on a difficult problem instance still failed to produce a solution within half-an-hour,
-			and also spiked all four activated CPU cores to 100\%. As such, given the known issues in the program, this is likely only a small part of any potential solution.
+			and also caused all four activated CPU cores to run at 100\% capacity. Additionally, it slightly increased the RAM used by the program.
+			As such, given the known issues in the program, this is likely only a small part of any potential solution.
 
 			Once the performance issues had been solved, possibly with reference to the above discussion,
 			there are several other ways that the solver could be improved, but the most obvious would be the addition of new constraints.
 			Examples of other constraints occur throughout the literature (see e.g.\cite{cohen14} \cite{karapetyan19}),
 			and integrating these into the solver would provide a more sophisticated model of the real-world scenarios the WSP aims to solve.
 
-	\section{References}
+	\section{Bibliography}
 	\bibliography{bibliography}
 	\bibliographystyle{plain}
 
