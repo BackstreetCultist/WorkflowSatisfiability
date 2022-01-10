@@ -286,11 +286,67 @@
 			\end{tabular}
 		\end{table}
 
+		This table, particularly the last four entries, demonstrates the severe performance issues in the solver.
+		It is notable that none of these four contain One-Team constraints, but they do contain large amounts of At-Most-\(k\) rules.
+		Large amounts of these are also found in examples 11 and 12, which also show notably poor performance compared to those around them.
+		However, we are forced to assume also that large quantities of One-Team constraints would produce the same effect,
+		due to the implementation of both of these constraints featuring the same limitation.
+
+		This limitation is simple to summarise: number of variables. Due to the above-mentioned constraint-channeling requirement for ``tying''
+		variables together in OR-Tools, the Python implementations of the mathematical formulations used for the constraints both generate huge numbers of Boolean variables,
+		which are required to test relations between tasks and users.
+		The fact that this high variable count is the cause of the performance issues can be observed in other ways:
+		the program shows notable slowdown even before solving the instance when constructing the rules for At-Most-\(k\) and One-Team constraints,
+		and it also uses an abnormally high amount of RAM for a simple Python script - as much as 1.5 gigabytes.
+
+		Potential alleviations of this issue can be found in the next Section, so to close this one we will summarise the performance of the solver as follows:
+		it is mathematically an effective and correct solver, but suffers from severe performance issues caused by a limitation of the chosen library requiring the generation of excessive amounts of variables.
+
 	\section{Conclusions \& Future Work}
 
-		% Talk about FPT
+		This section will feature a brief summary of the above Report, highlighting the key facts about the solver and the way in which it was built.
+		From these conclusions, we will then be able to discuss several key options for ``next steps'' that could be taken were development on the solver to continue.
 
-		% Talk about multithreading
+		\subsection{Conclusions}
+
+			The solver that has been developed is implemented in Python, using Google's OR-Tools suite to provide a basis for Constraint Programming.
+			Constraint Programming is a proven solution for the Workflow Satisfiability problem\cite{benoist02}\cite{karapetyan19},
+			and is in general a useful tool for problems of this type as it allows precise mathematical formulation of the means by which solutions are reached\cite{kotecha12}.
+
+			We have discussed the formulation in this case, for five constraints as well as the extra requirement of determining whether a found solution is unique.
+			We have seen that the solver is mathematically correct, however suffers from severe performance issues. We have further discussed the cause of these issues,
+			which is likely the high count of variables required by OR-Tools to model the mathematical formulation we have developed.
+			
+			As such, any following work on the solver must focus on solving these performance issues.
+			Discussion of some potential solutions can be found below.
+
+		\subsection{Future Work}
+
+			In this final part of the Report, we will discuss a number of "next steps" for the solver,
+			with a particular focus on potential solutions to the aforementioned performance issues.
+
+			The first and most obvious solution would be to change the mathematical formulation to one which,
+			in OR-Tools, requires fewer variables. There are several likely avenues for different formulations.
+			but a particularly likely one is found in the fact that the WSP is known to be Fixed-Parameter Tractable (FPT)\cite{cohen14}.
+			Put simply, this means that, for certain constraints or families of constraints,
+			the complexity of the problem can be tied to a single Fixed Paramter which the solution is built around.
+			In the case of the WSP, this fixed parameter is generally taken to be the number of tasks\cite{cohen14}.
+			With this in mind, a more sophisticated mathematical formulation might well be found based on the principles of FPT.
+
+			A more prosaic ``programmer's solution'' also naturally presents itself. This is the introduction of multi-threading into the system.
+			When running the solver on a difficult instance, it is easy to observe a single CPU core running at 100\% capacity while others sit idle.
+			Multi-threading therefore seems an obvious fix, or at least an obvious improvement.
+			In OR-Tools, a CP-SAT Solver can easily be set to run in a multi-threaded mode,
+			by setting the number of "workers" spawned by the solver. Each worker starts in a different location in the search space,
+			meaning that each one has more-or-less the same chance of finding a solution\footnote{See discussion by OR-Tools dev Laurent Perron here: https://groups.google.com/g/or-tools-discuss/c/i3TF\_Szuz\_k}.
+			This is a somewhat naive, non-deterministic approach to multi-threading, but would still likely provide some performance improvement.
+			However, given a brief, non-formal test, multi-threading the solver on a difficult problem instance still failed to produce a solution within half-an-hour,
+			and also spiked all four activated CPU cores to 100\%. As such, given the known issues in the program, this is likely only a small part of any potential solution.
+
+			Once the performance issues had been solved, possibly with reference to the above discussion,
+			there are several other ways that the solver could be improved, but the most obvious would be the addition of new constraints.
+			Examples of other constraints occur throughout the literature (see e.g.\cite{cohen14} \cite{karapetyan19}),
+			and integrating these into the solver would provide a more sophisticated model of the real-world scenarios the WSP aims to solve.
 
 	\section{References}
 	\bibliography{bibliography}
